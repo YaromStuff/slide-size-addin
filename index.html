@@ -561,21 +561,8 @@
       btn.setAttribute('aria-busy', 'true');
       try {
         await PowerPoint.run(async (context) => {
-          const slides = context.presentation.slides;
-          slides.load('items');
-          await context.sync();
-
-          if (slides.items.length > 1) {
-            const confirmed = confirm(
-              `המצגת מכילה תוכן.\nשינוי גודל השקף עלול להזיז אלמנטים.\nלהמשיך?`
-            );
-            if (!confirmed) return;
-          }
-
-          context.presentation.slideSizeType = "Custom";
           context.presentation.slideWidth = widthPts;
           context.presentation.slideHeight = heightPts;
-
           await context.sync();
           showSuccess(`✓ הגודל שונה ל: ${presetName}`);
         });
