@@ -493,7 +493,6 @@
           updateCardVisual(card, el);
           selectedPresetId = card.id;
           setSelected(card.id);
-          clearCustomInputs();
         });
 
         el.appendChild(rotateBtn);
@@ -522,7 +521,6 @@
       function activateCard() {
         selectedPresetId = card.id;
         setSelected(card.id);
-        clearCustomInputs();
       }
       el.addEventListener('click', activateCard);
       el.addEventListener('keydown', (e) => {
