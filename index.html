@@ -363,12 +363,12 @@
       <h2>מותאם אישית</h2>
       <div class="custom-inputs">
         <div class="input-group">
-          <label for="customWidth">רוחב (px)</label>
-          <input type="number" id="customWidth" placeholder="1920" min="72" max="4032" inputmode="numeric" />
+          <label for="customWidth">רוחב (ס"מ)</label>
+          <input type="number" id="customWidth" placeholder="33.9" min="1" max="142" step="0.1" inputmode="decimal" />
         </div>
         <div class="input-group">
-          <label for="customHeight">גובה (px)</label>
-          <input type="number" id="customHeight" placeholder="1080" min="72" max="4032" inputmode="numeric" />
+          <label for="customHeight">גובה (ס"מ)</label>
+          <input type="number" id="customHeight" placeholder="19.1" min="1" max="142" step="0.1" inputmode="decimal" />
         </div>
       </div>
       <button class="apply-btn" id="applyCustomBtn">החל</button>
@@ -382,13 +382,16 @@
     'use strict';
 
     // ===== נתוני גדלי השקפים =====
-    // EMU = pixels × 12700 (בהנחת 96 DPI)
+    // wCm/hCm = גודל פיזי בס"מ (מקור האמת)
+    // w/h = ערכי תצוגה בפיקסלים בלבד (לנוחות המשתמש)
+    // המרה לנקודות (API): pts = cm / 2.54 * 72
     const PRESETS = [
       {
         id: 'wide',
         nameDefault: 'מצגת רחבה',
         nameRotated: 'מצגת לגובה',
         w: 1920, h: 1080,
+        wCm: 33.867, hCm: 19.05,
         canRotate: true
       },
       {
@@ -396,6 +399,7 @@
         nameDefault: 'ריבוע',
         nameRotated: null,
         w: 1080, h: 1080,
+        wCm: 19.05, hCm: 19.05,
         canRotate: false
       },
       {
@@ -403,6 +407,7 @@
         nameDefault: 'סטורי / ורטיקל',
         nameRotated: 'סטורי לרוחב',
         w: 1080, h: 1920,
+        wCm: 19.05, hCm: 33.867,
         canRotate: true
       },
       {
@@ -410,6 +415,7 @@
         nameDefault: 'A4 לאורך',
         nameRotated: 'A4 לרוחב',
         w: 2480, h: 3508,
+        wCm: 21, hCm: 29.7,
         canRotate: true
       },
       {
@@ -417,18 +423,20 @@
         nameDefault: 'A3 לאורך',
         nameRotated: 'A3 לרוחב',
         w: 3508, h: 4961,
+        wCm: 29.7, hCm: 42,
         canRotate: true
       }
     ];
 
-    const EMU_PER_PX = 12700;
-    const EMU_MIN = 914400;   // ~72px
-    const EMU_MAX = 51206400; // ~4032px
-    const PREVIEW_MAX = 60;   // גודל מרבי של אזור ה-preview בפיקסלים
+    function cmToPts(cm) { return cm / 2.54 * 72; }
 
-    // state של כרטיסים (isRotated לכל preset)
+    const PT_MIN = 36;    // ~1.27cm
+    const PT_MAX = 4032;  // ~142.2cm
+    const PREVIEW_MAX = 60;
+
     const cardState = {};
     PRESETS.forEach(p => { cardState[p.id] = false; });
+    let selectedPresetId = null;
 
     // ===== חישוב מידות preview לפי פרופורציות =====
     function calcPreview(w, h) {
@@ -480,16 +488,12 @@
         </svg>`;
 
         rotateBtn.addEventListener('click', (e) => {
-          e.stopPropagation(); // מונע הפעלת applySlideSize פעמיים
+          e.stopPropagation();
           cardState[card.id] = !cardState[card.id];
           updateCardVisual(card, el);
-          // מיד מחיל את הגודל החדש
-          const rotated = cardState[card.id];
-          const w = rotated ? card.h : card.w;
-          const h = rotated ? card.w : card.h;
-          const name = rotated ? card.nameRotated : card.nameDefault;
+          selectedPresetId = card.id;
           setSelected(card.id);
-          applySlideSize(w * EMU_PER_PX, h * EMU_PER_PX, name);
+          clearCustomInputs();
         });
 
         el.appendChild(rotateBtn);
@@ -514,16 +518,11 @@
       `;
       el.appendChild(info);
 
-      // לחיצה על הכרטיס — שינוי גודל
+      // לחיצה על הכרטיס — בחירה בלבד (החל דרך כפתור)
       function activateCard() {
-        const rotated = cardState[card.id];
-        const w = rotated ? card.h : card.w;
-        const h = rotated ? card.w : card.h;
-        const name = rotated
-          ? (card.nameRotated || card.nameDefault)
-          : card.nameDefault;
+        selectedPresetId = card.id;
         setSelected(card.id);
-        applySlideSize(w * EMU_PER_PX, h * EMU_PER_PX, name);
+        clearCustomInputs();
       }
       el.addEventListener('click', activateCard);
       el.addEventListener('keydown', (e) => {
@@ -558,7 +557,7 @@
     }
 
     // ===== שינוי גודל השקף דרך Office.js API =====
-    async function applySlideSize(widthEmu, heightEmu, presetName) {
+    async function applySlideSize(widthPts, heightPts, presetName) {
       const btn = document.getElementById('applyCustomBtn');
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
@@ -568,7 +567,6 @@
           slides.load('items');
           await context.sync();
 
-          // מצגת עם יותר משקף אחד = יש תוכן
           if (slides.items.length > 1) {
             const confirmed = confirm(
               `המצגת מכילה תוכן.\nשינוי גודל השקף עלול להזיז אלמנטים.\nלהמשיך?`
@@ -576,17 +574,14 @@
             if (!confirmed) return;
           }
 
-          // שינוי הגודל
           context.presentation.slideSizeType = "Custom";
-          context.presentation.slideWidth = widthEmu;
-          context.presentation.slideHeight = heightEmu;
+          context.presentation.slideWidth = widthPts;
+          context.presentation.slideHeight = heightPts;
 
           await context.sync();
-
           showSuccess(`✓ הגודל שונה ל: ${presetName}`);
         });
       } catch (err) {
-        // טיפול בשגיאות API
         const msg = err && err.message ? err.message : String(err);
         if (msg.includes('GeneralException') || msg.includes('AccessDenied')) {
           showError('שגיאה: אין גישה לשינוי גודל השקף');
@@ -601,37 +596,44 @@
       }
     }
 
-    // ===== ולידציה ושינוי גודל מותאם אישית =====
-    function handleCustomApply() {
-      const wInput = document.getElementById('customWidth');
-      const hInput = document.getElementById('customHeight');
+    function clearCustomInputs() {
+      document.getElementById('customWidth').value = '';
+      document.getElementById('customHeight').value = '';
+    }
 
-      const wPx = parseInt(wInput.value, 10);
-      const hPx = parseInt(hInput.value, 10);
-
-      // בדיקת קלט
-      if (!wPx || !hPx || isNaN(wPx) || isNaN(hPx)) {
-        showError('יש להזין רוחב וגובה בפיקסלים');
+    // ===== כפתור החל — מטפל בהחלה של preset או גודל מותאם =====
+    function handleApply() {
+      if (selectedPresetId) {
+        const preset = PRESETS.find(p => p.id === selectedPresetId);
+        const rotated = cardState[preset.id];
+        const wPts = cmToPts(rotated ? preset.hCm : preset.wCm);
+        const hPts = cmToPts(rotated ? preset.wCm : preset.hCm);
+        const name = rotated ? (preset.nameRotated || preset.nameDefault) : preset.nameDefault;
+        applySlideSize(wPts, hPts, name);
         return;
       }
 
-      const wEmu = wPx * EMU_PER_PX;
-      const hEmu = hPx * EMU_PER_PX;
+      const wCm = parseFloat(document.getElementById('customWidth').value);
+      const hCm = parseFloat(document.getElementById('customHeight').value);
 
-      if (wEmu < EMU_MIN || hEmu < EMU_MIN) {
-        showError(`גודל מינימלי: ${Math.ceil(EMU_MIN / EMU_PER_PX)} px`);
+      if (!wCm || !hCm || isNaN(wCm) || isNaN(hCm) || wCm <= 0 || hCm <= 0) {
+        showError('בחר גודל מהרשימה או הזן ס"מ בשדות למטה');
         return;
       }
 
-      if (wEmu > EMU_MAX || hEmu > EMU_MAX) {
-        showError(`גודל מקסימלי: ${Math.floor(EMU_MAX / EMU_PER_PX)} px`);
+      const wPts = wCm / 2.54 * 72;
+      const hPts = hCm / 2.54 * 72;
+
+      if (wPts < PT_MIN || hPts < PT_MIN) {
+        showError(`גודל מינימלי: 1.3 ס"מ`);
+        return;
+      }
+      if (wPts > PT_MAX || hPts > PT_MAX) {
+        showError(`גודל מקסימלי: 142 ס"מ`);
         return;
       }
 
-      // הסרת סימון מכרטיסים מוכנים
-      document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
-
-      applySlideSize(wEmu, hEmu, `${wPx}×${hPx}`);
+      applySlideSize(wPts, hPts, `${wCm}×${hCm} ס"מ`);
     }
 
     // ===== אתחול — מחכים ל-Office.js =====
@@ -642,13 +644,15 @@
         grid.appendChild(buildCard(card));
       });
 
-      // כפתור החל לגודל מותאם
-      document.getElementById('applyCustomBtn').addEventListener('click', handleCustomApply);
+      document.getElementById('applyCustomBtn').addEventListener('click', handleApply);
 
-      // Enter בשדות הקלט מפעיל את "החל"
       ['customWidth', 'customHeight'].forEach(id => {
         document.getElementById(id).addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') handleCustomApply();
+          if (e.key === 'Enter') handleApply();
+        });
+        document.getElementById(id).addEventListener('input', () => {
+          selectedPresetId = null;
+          document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
         });
       });
     });
