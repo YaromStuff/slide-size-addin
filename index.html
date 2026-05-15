@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>גודל שקף</title>
+
+  <!-- טעינת גופן Heebo מ-Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Office.js — חובה לפני כל קוד אחר -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+
+  <style>
+    /* ===== איפוס ובסיס ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --accent: #1a3a5c;
+      --accent-light: #2a5282;
+      --accent-bg: #eef2f7;
+      --gray-100: #f7f8fa;
+      --gray-200: #e8eaed;
+      --gray-400: #9aa0a6;
+      --gray-600: #5f6368;
+      --gray-900: #202124;
+      --success: #1e7e34;
+      --error: #c0392b;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      font-size: 13px;
+      color: var(--gray-900);
+      background: #ffffff;
+      line-height: 1.5;
+    }
+
+    /* ===== מיכל ראשי ===== */
+    .addin-container {
+      padding: 16px 14px 80px;
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    /* ===== כותרת ===== */
+    header {
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.2px;
+    }
+
+    /* ===== גריד כרטיסי גדלים ===== */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    /* ===== כרטיס גודל ===== */
+    .preset-card {
+      position: relative;
+      background: var(--gray-100);
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 12px 10px 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-height: 110px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .preset-card:hover {
+      border-color: var(--accent-light);
+      box-shadow: var(--shadow);
+      background: #ffffff;
+    }
+
+    .preset-card:active {
+      transform: scale(0.97);
+    }
+
+    .preset-card:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* כרטיס נבחר */
+    .preset-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+      box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+    }
+
+    /* סימן וי על כרטיס נבחר */
+    .preset-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ===== כפתור Rotate ===== */
+    /* האלמנט הויזואלי קטן (24px) אך אזור הלחיצה מורחב ל-44px */
+    .rotate-btn {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--gray-600);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: background 0.15s, color 0.15s;
+      z-index: 2;
+      line-height: 1;
+    }
+
+    .rotate-btn:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-radius: 50%;
+    }
+
+    .rotate-btn:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .rotate-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* ===== preview ויזואלי (פרופורציות) ===== */
+    .card-preview-area {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .preview-shape {
+      background: var(--gray-200);
+      border: 1.5px solid var(--gray-400);
+      border-radius: 2px;
+      transition: width 0.2s ease, height 0.2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .preview-shape {
+        transition: none;
+      }
+      .preset-card, .rotate-btn, .apply-btn, .input-group input {
+        transition: none;
+      }
+    }
+
+    .preset-card.selected .preview-shape {
+      background: #c6d4e8;
+      border-color: var(--accent-light);
+    }
+
+    /* ===== מידע טקסטואלי בכרטיס ===== */
+    .card-info {
+      text-align: center;
+      width: 100%;
+    }
+
+    .card-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-900);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .card-dimensions {
+      font-size: 11px;
+      color: var(--gray-600);
+      font-weight: 400;
+      display: block;
+    }
+
+    /* ===== מותאם אישית ===== */
+    .custom-section {
+      background: var(--gray-100);
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 14px 12px;
+      margin-bottom: 14px;
+    }
+
+    .custom-section h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 12px;
+    }
+
+    .custom-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      color: var(--gray-600);
+      font-weight: 500;
+    }
+
+    .input-group input {
+      font-family: 'Heebo', sans-serif;
+      font-size: 13px;
+      padding: 11px 9px;
+      min-height: 44px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      color: var(--gray-900);
+      width: 100%;
+      transition: border-color 0.15s;
+      text-align: center;
+      direction: ltr;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.15);
+    }
+
+    .input-group input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.15);
+    }
+
+    .input-group input::placeholder {
+      color: var(--gray-400);
+    }
+
+    /* כפתור החל */
+    .apply-btn {
+      font-family: 'Heebo', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      letter-spacing: 0.2px;
+    }
+
+    .apply-btn:hover {
+      background: var(--accent-light);
+    }
+
+    .apply-btn:active {
+      background: #0f2438;
+      transform: scale(0.98);
+    }
+
+    .apply-btn:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .apply-btn:disabled,
+    .apply-btn[aria-busy="true"] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ===== הודעת סטטוס ===== */
+    .status-message {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+      min-height: 36px;
+      transition: opacity 0.3s;
+      background: #fff;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .status-message.success {
+      color: var(--success);
+      background: #f0fff4;
+      border-top-color: #c6f6d5;
+    }
+
+    .status-message.error {
+      color: var(--error);
+      background: #fff5f5;
+      border-top-color: #fed7d7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="addin-container">
+    <header>
+      <h1>גודל שקף</h1>
+    </header>
+
+    <!-- כרטיסי גדלים מוכנים -->
+    <div class="presets-grid" id="presetsGrid">
+      <!-- נוצר דינמית על ידי JavaScript -->
+    </div>
+
+    <!-- גודל מותאם אישית -->
+    <div class="custom-section">
+      <h2>מותאם אישית</h2>
+      <div class="custom-inputs">
+        <div class="input-group">
+          <label for="customWidth">רוחב (px)</label>
+          <input type="number" id="customWidth" placeholder="1920" min="72" max="4032" inputmode="numeric" />
+        </div>
+        <div class="input-group">
+          <label for="customHeight">גובה (px)</label>
+          <input type="number" id="customHeight" placeholder="1080" min="72" max="4032" inputmode="numeric" />
+        </div>
+      </div>
+      <button class="apply-btn" id="applyCustomBtn">החל</button>
+    </div>
+  </div>
+
+  <!-- הודעת סטטוס (קבועה למטה) — aria-live מודיע לקוראי מסך -->
+  <div class="status-message" id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    'use strict';
+
+    // ===== נתוני גדלי השקפים =====
+    // EMU = pixels × 12700 (בהנחת 96 DPI)
+    const PRESETS = [
+      {
+        id: 'wide',
+        nameDefault: 'מצגת רחבה',
+        nameRotated: 'מצגת לגובה',
+        w: 1920, h: 1080,
+        canRotate: true
+      },
+      {
+        id: 'square',
+        nameDefault: 'ריבוע',
+        nameRotated: null,
+        w: 1080, h: 1080,
+        canRotate: false
+      },
+      {
+        id: 'story',
+        nameDefault: 'סטורי / ורטיקל',
+        nameRotated: 'סטורי לרוחב',
+        w: 1080, h: 1920,
+        canRotate: true
+      },
+      {
+        id: 'a4',
+        nameDefault: 'A4 לאורך',
+        nameRotated: 'A4 לרוחב',
+        w: 2480, h: 3508,
+        canRotate: true
+      },
+      {
+        id: 'a3',
+        nameDefault: 'A3 לאורך',
+        nameRotated: 'A3 לרוחב',
+        w: 3508, h: 4961,
+        canRotate: true
+      }
+    ];
+
+    const EMU_PER_PX = 12700;
+    const EMU_MIN = 914400;   // ~72px
+    const EMU_MAX = 51206400; // ~4032px
+    const PREVIEW_MAX = 60;   // גודל מרבי של אזור ה-preview בפיקסלים
+
+    // state של כרטיסים (isRotated לכל preset)
+    const cardState = {};
+    PRESETS.forEach(p => { cardState[p.id] = false; });
+
+    // ===== חישוב מידות preview לפי פרופורציות =====
+    function calcPreview(w, h) {
+      const scale = PREVIEW_MAX / Math.max(w, h);
+      return {
+        dw: Math.max(4, Math.round(w * scale)),
+        dh: Math.max(4, Math.round(h * scale))
+      };
+    }
+
+    // ===== עדכון ויזואל של כרטיס (שם, מידות, preview) =====
+    function updateCardVisual(card, el) {
+      const rotated = cardState[card.id];
+      const w = rotated ? card.h : card.w;
+      const h = rotated ? card.w : card.h;
+      const name = rotated ? card.nameRotated : card.nameDefault;
+      const { dw, dh } = calcPreview(w, h);
+
+      el.querySelector('.card-name').textContent = name;
+      el.querySelector('.card-dimensions').textContent = `${w} × ${h} px`;
+
+      const shape = el.querySelector('.preview-shape');
+      shape.style.width = dw + 'px';
+      shape.style.height = dh + 'px';
+    }
+
+    // ===== בניית כרטיס HTML =====
+    function buildCard(card) {
+      const { dw, dh } = calcPreview(card.w, card.h);
+
+      const el = document.createElement('div');
+      el.className = 'preset-card';
+      el.dataset.id = card.id;
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', `${card.nameDefault} — ${card.w} × ${card.h} פיקסלים`);
+
+      // כפתור rotate (רק אם canRotate)
+      if (card.canRotate) {
+        const rotateBtn = document.createElement('button');
+        rotateBtn.className = 'rotate-btn';
+        rotateBtn.title = 'החלף רוחב/גובה';
+        rotateBtn.setAttribute('aria-label', 'החלף רוחב/גובה');
+        // SVG של חצים מסתובבים
+        rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <polyline points="23 20 23 14 17 14"></polyline>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+        </svg>`;
+
+        rotateBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // מונע הפעלת applySlideSize פעמיים
+          cardState[card.id] = !cardState[card.id];
+          updateCardVisual(card, el);
+          // מיד מחיל את הגודל החדש
+          const rotated = cardState[card.id];
+          const w = rotated ? card.h : card.w;
+          const h = rotated ? card.w : card.h;
+          const name = rotated ? card.nameRotated : card.nameDefault;
+          setSelected(card.id);
+          applySlideSize(w * EMU_PER_PX, h * EMU_PER_PX, name);
+        });
+
+        el.appendChild(rotateBtn);
+      }
+
+      // אזור preview
+      const previewArea = document.createElement('div');
+      previewArea.className = 'card-preview-area';
+      const shape = document.createElement('div');
+      shape.className = 'preview-shape';
+      shape.style.width = dw + 'px';
+      shape.style.height = dh + 'px';
+      previewArea.appendChild(shape);
+      el.appendChild(previewArea);
+
+      // מידע טקסטואלי
+      const info = document.createElement('div');
+      info.className = 'card-info';
+      info.innerHTML = `
+        <span class="card-name">${card.nameDefault}</span>
+        <span class="card-dimensions">${card.w} × ${card.h} px</span>
+      `;
+      el.appendChild(info);
+
+      // לחיצה על הכרטיס — שינוי גודל
+      function activateCard() {
+        const rotated = cardState[card.id];
+        const w = rotated ? card.h : card.w;
+        const h = rotated ? card.w : card.h;
+        const name = rotated
+          ? (card.nameRotated || card.nameDefault)
+          : card.nameDefault;
+        setSelected(card.id);
+        applySlideSize(w * EMU_PER_PX, h * EMU_PER_PX, name);
+      }
+      el.addEventListener('click', activateCard);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateCard(); }
+      });
+
+      return el;
+    }
+
+    // ===== סימון כרטיס נבחר =====
+    function setSelected(id) {
+      document.querySelectorAll('.preset-card').forEach(el => {
+        el.classList.toggle('selected', el.dataset.id === id);
+      });
+    }
+
+    // ===== הצגת הודעות סטטוס =====
+    function showSuccess(msg) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status-message success';
+      setTimeout(() => {
+        el.textContent = '';
+        el.className = 'status-message';
+      }, 2500);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status-message error';
+    }
+
+    // ===== שינוי גודל השקף דרך Office.js API =====
+    async function applySlideSize(widthEmu, heightEmu, presetName) {
+      const btn = document.getElementById('applyCustomBtn');
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      try {
+        await PowerPoint.run(async (context) => {
+          const slides = context.presentation.slides;
+          slides.load('items');
+          await context.sync();
+
+          // מצגת עם יותר משקף אחד = יש תוכן
+          if (slides.items.length > 1) {
+            const confirmed = confirm(
+              `המצגת מכילה תוכן.\nשינוי גודל השקף עלול להזיז אלמנטים.\nלהמשיך?`
+            );
+            if (!confirmed) return;
+          }
+
+          // שינוי הגודל
+          context.presentation.slideSizeType = PowerPoint.SlideSizeType.custom;
+          context.presentation.slideWidth = widthEmu;
+          context.presentation.slideHeight = heightEmu;
+
+          await context.sync();
+
+          showSuccess(`✓ הגודל שונה ל: ${presetName}`);
+        });
+      } catch (err) {
+        // טיפול בשגיאות API
+        const msg = err && err.message ? err.message : String(err);
+        if (msg.includes('GeneralException') || msg.includes('AccessDenied')) {
+          showError('שגיאה: אין גישה לשינוי גודל השקף');
+        } else if (msg.includes('InvalidArgument')) {
+          showError('שגיאה: ערכי גודל לא תקינים');
+        } else {
+          showError(`שגיאה: ${msg}`);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+    }
+
+    // ===== ולידציה ושינוי גודל מותאם אישית =====
+    function handleCustomApply() {
+      const wInput = document.getElementById('customWidth');
+      const hInput = document.getElementById('customHeight');
+
+      const wPx = parseInt(wInput.value, 10);
+      const hPx = parseInt(hInput.value, 10);
+
+      // בדיקת קלט
+      if (!wPx || !hPx || isNaN(wPx) || isNaN(hPx)) {
+        showError('יש להזין רוחב וגובה בפיקסלים');
+        return;
+      }
+
+      const wEmu = wPx * EMU_PER_PX;
+      const hEmu = hPx * EMU_PER_PX;
+
+      if (wEmu < EMU_MIN || hEmu < EMU_MIN) {
+        showError(`גודל מינימלי: ${Math.ceil(EMU_MIN / EMU_PER_PX)} px`);
+        return;
+      }
+
+      if (wEmu > EMU_MAX || hEmu > EMU_MAX) {
+        showError(`גודל מקסימלי: ${Math.floor(EMU_MAX / EMU_PER_PX)} px`);
+        return;
+      }
+
+      // הסרת סימון מכרטיסים מוכנים
+      document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
+
+      applySlideSize(wEmu, hEmu, `${wPx}×${hPx}`);
+    }
+
+    // ===== אתחול — מחכים ל-Office.js =====
+    Office.onReady((info) => {
+      // בניית כרטיסי הגדלים
+      const grid = document.getElementById('presetsGrid');
+      PRESETS.forEach(card => {
+        grid.appendChild(buildCard(card));
+      });
+
+      // כפתור החל לגודל מותאם
+      document.getElementById('applyCustomBtn').addEventListener('click', handleCustomApply);
+
+      // Enter בשדות הקלט מפעיל את "החל"
+      ['customWidth', 'customHeight'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') handleCustomApply();
+        });
+      });
+    });
+  </script>
+</body>
+</html>
