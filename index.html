@@ -561,8 +561,9 @@
       btn.setAttribute('aria-busy', 'true');
       try {
         await PowerPoint.run(async (context) => {
-          context.presentation.slideWidth = widthPts;
-          context.presentation.slideHeight = heightPts;
+          const pageSetup = context.presentation.pageSetup;
+          pageSetup.slideWidth = widthPts;
+          pageSetup.slideHeight = heightPts;
           await context.sync();
           showSuccess(`✓ הגודל שונה ל: ${presetName}`);
         });
