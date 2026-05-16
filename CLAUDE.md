@@ -11,21 +11,18 @@ PowerPoint Office Web Add-in ("כלי שקפים") for one-click slide resizing.
 Everything lives in a single `index.html`. There is no bundler, no server, and no local dev server — open `index.html` directly in a browser to inspect the UI (Office.js will fail to initialize outside PowerPoint, but the layout renders fully).
 
 **Data flow:**
-1. `PRESETS` array defines all slide sizes (pixels + EMU)
+1. `PRESETS` array defines all slide sizes — each preset has `wPts`/`hPts` (API source of truth), `wCm`/`hCm` (display), `w`/`h` (preview aspect ratio only)
 2. `cardState` object tracks `isRotated` per preset ID
-3. Clicking a card or rotate button → `applySlideSize(widthEmu, heightEmu, name)` → `PowerPoint.run()` context
+3. Clicking a card selects it; clicking "החל" → `handleApply()` → `applySlideSize(widthPts, heightPts, name)` → `PowerPoint.run()` context
 4. `Office.onReady()` builds all cards dynamically via `buildCard()`
 
-**EMU conversion:** `pixels × 12700 = EMU` (assumes 96 DPI). All Office.js slide dimensions use EMU.
-
-**Content detection heuristic:** `slides.items.length > 1` = presentation has content → show `confirm()` before resizing.
+**Units:** `pageSetup.slideWidth` and `pageSetup.slideHeight` use **points** (1 pt = 1/72 inch). Requires PowerPointApi 1.10. Convert cm→pts: `cm / 2.54 * 72`. Standard widescreen = 960 × 540 pts.
 
 ## Key Constraints
 
 - **No `alert()` for errors** — use `showError()` which writes to `#status` element
-- **`confirm()` is allowed** for the destructive resize confirmation only
 - All logic must run inside `Office.onReady()` — direct PowerPoint API calls outside it will throw
-- `manifest.xml` uses `file:///` URLs — works only on PowerPoint Desktop (Mac), not PowerPoint Web
+- `manifest.xml` currently points to GitHub Pages URLs — serves PowerPoint Desktop via HTTPS
 
 ## Validate manifest.xml
 
@@ -55,7 +52,9 @@ The manifest points to `file:///Users/yaromganor/Documents/MyAddins/slide-size-a
 Add an object to the `PRESETS` array in `index.html`:
 
 ```js
-{ id: 'unique-id', nameDefault: 'שם', nameRotated: 'שם מסובב', w: 1234, h: 5678, canRotate: true }
+{ id: 'unique-id', nameDefault: 'שם', nameRotated: 'שם מסובב', w: 1234, h: 5678, wCm: 12.3, hCm: 45.6, wPts: 349, hPts: 1293, canRotate: true }
 ```
+
+`wPts`/`hPts` are the values sent to the Office.js API. Use exact integers for standard sizes (e.g., 960/540 for widescreen). For paper sizes derive from mm: `mm / 25.4 * 72`.
 
 Set `canRotate: false` and `nameRotated: null` for square or fixed-orientation formats.

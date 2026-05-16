@@ -382,16 +382,17 @@
     'use strict';
 
     // ===== נתוני גדלי השקפים =====
-    // wCm/hCm = גודל פיזי בס"מ (מקור האמת)
-    // w/h = ערכי תצוגה בפיקסלים בלבד (לנוחות המשתמש)
-    // המרה לנקודות (API): pts = cm / 2.54 * 72
+    // wPts/hPts = ערכי API מדויקים בנקודות (מקור האמת) — pageSetup.slideWidth/Height
+    // wCm/hCm = תצוגה למשתמש בס"מ
+    // w/h = פרופורציות לתצוגה המקדימה בפיקסלים בלבד
     const PRESETS = [
       {
         id: 'wide',
         nameDefault: 'מצגת רחבה',
         nameRotated: 'מצגת לגובה',
         w: 1920, h: 1080,
-        wCm: 33.867, hCm: 19.05,
+        wCm: 33.87, hCm: 19.05,
+        wPts: 960, hPts: 540,
         canRotate: true
       },
       {
@@ -400,6 +401,7 @@
         nameRotated: null,
         w: 1080, h: 1080,
         wCm: 19.05, hCm: 19.05,
+        wPts: 540, hPts: 540,
         canRotate: false
       },
       {
@@ -407,7 +409,8 @@
         nameDefault: 'סטורי / ורטיקל',
         nameRotated: 'סטורי לרוחב',
         w: 1080, h: 1920,
-        wCm: 19.05, hCm: 33.867,
+        wCm: 19.05, hCm: 33.87,
+        wPts: 540, hPts: 960,
         canRotate: true
       },
       {
@@ -416,6 +419,7 @@
         nameRotated: 'A4 לרוחב',
         w: 2480, h: 3508,
         wCm: 21, hCm: 29.7,
+        wPts: 595.28, hPts: 841.89,
         canRotate: true
       },
       {
@@ -424,6 +428,7 @@
         nameRotated: 'A3 לרוחב',
         w: 3508, h: 4961,
         wCm: 29.7, hCm: 42,
+        wPts: 841.89, hPts: 1190.55,
         canRotate: true
       }
     ];
@@ -567,18 +572,19 @@
           pageSetup.slideWidth = widthPts;
           pageSetup.slideHeight = heightPts;
           await context.sync();
-          const wCm = (widthPts / 72 * 2.54).toFixed(1);
-          const hCm = (heightPts / 72 * 2.54).toFixed(1);
+          const wCm = (widthPts / 72 * 2.54).toFixed(2);
+          const hCm = (heightPts / 72 * 2.54).toFixed(2);
           showSuccess(`✓ ${presetName} — ${wCm} × ${hCm} ס"מ`);
         });
       } catch (err) {
+        const code = err && err.code ? err.code : '';
         const msg = err && err.message ? err.message : String(err);
-        if (msg.includes('GeneralException') || msg.includes('AccessDenied')) {
+        if (code === 'AccessDenied' || code === 'GeneralException' || msg.includes('AccessDenied')) {
           showError('שגיאה: אין גישה לשינוי גודל השקף');
-        } else if (msg.includes('InvalidArgument')) {
+        } else if (code === 'InvalidArgument' || msg.includes('InvalidArgument')) {
           showError('שגיאה: ערכי גודל לא תקינים');
         } else {
-          showError(`שגיאה: ${msg}`);
+          showError(`שגיאה: ${msg || code}`);
         }
       } finally {
         btn.disabled = false;
@@ -596,8 +602,8 @@
       if (selectedPresetId) {
         const preset = PRESETS.find(p => p.id === selectedPresetId);
         const rotated = cardState[preset.id];
-        const wPts = cmToPts(rotated ? preset.hCm : preset.wCm);
-        const hPts = cmToPts(rotated ? preset.wCm : preset.hCm);
+        const wPts = rotated ? preset.hPts : preset.wPts;
+        const hPts = rotated ? preset.wPts : preset.hPts;
         const name = rotated ? (preset.nameRotated || preset.nameDefault) : preset.nameDefault;
         applySlideSize(wPts, hPts, name);
         return;
