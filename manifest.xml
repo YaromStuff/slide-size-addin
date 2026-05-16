@@ -15,7 +15,7 @@
   <Description DefaultValue="שינוי גודל שקף בלחיצה אחת"/>
 
   <IconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-80.png"/>
   <SupportUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/"/>
 
   <AppDomains>
@@ -81,9 +81,9 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-16.png"/>
         <bt:Image id="Icon.32x32" DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Commands.Url" DefaultValue="https://yaromstuff.github.io/slide-size-addin/index.html"/>
