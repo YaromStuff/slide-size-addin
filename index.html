@@ -382,16 +382,14 @@
     'use strict';
 
     // ===== נתוני גדלי השקפים =====
-    // wPts/hPts = ערכי API מדויקים בנקודות (מקור האמת) — pageSetup.slideWidth/Height
-    // wCm/hCm = תצוגה למשתמש בס"מ
-    // w/h = פרופורציות לתצוגה המקדימה בפיקסלים בלבד
+    // wPts/hPts = ערכי API בנקודות — pageSetup.slideWidth/Height (מקור האמת)
+    // w/h = מידות בפיקסלים — לתצוגה בכרטיס ולפרופורציות preview
     const PRESETS = [
       {
         id: 'wide',
         nameDefault: 'מצגת רחבה',
         nameRotated: 'מצגת לגובה',
         w: 1920, h: 1080,
-        wCm: 33.87, hCm: 19.05,
         wPts: 960, hPts: 540,
         canRotate: true
       },
@@ -400,25 +398,22 @@
         nameDefault: 'ריבוע',
         nameRotated: null,
         w: 1080, h: 1080,
-        wCm: 19.05, hCm: 19.05,
         wPts: 540, hPts: 540,
         canRotate: false
       },
       {
         id: 'story',
         nameDefault: 'סטורי / ורטיקל',
-        nameRotated: 'סטורי לרוחב',
+        nameRotated: null,
         w: 1080, h: 1920,
-        wCm: 19.05, hCm: 33.87,
         wPts: 540, hPts: 960,
-        canRotate: true
+        canRotate: false
       },
       {
         id: 'a4',
         nameDefault: 'A4 לאורך',
         nameRotated: 'A4 לרוחב',
         w: 2480, h: 3508,
-        wCm: 19.05, hCm: 27.52,
         wPts: 540, hPts: 780,
         canRotate: true
       },
@@ -427,7 +422,6 @@
         nameDefault: 'A3 לאורך',
         nameRotated: 'A3 לרוחב',
         w: 3508, h: 4961,
-        wCm: 26.67, hCm: 35.56,
         wPts: 756, hPts: 1008,
         canRotate: true
       }
@@ -453,15 +447,13 @@
     // ===== עדכון ויזואל של כרטיס (שם, מידות, preview) =====
     function updateCardVisual(card, el) {
       const rotated = cardState[card.id];
-      const w = rotated ? card.h : card.w;
-      const h = rotated ? card.w : card.h;
-      const wCm = rotated ? card.hCm : card.wCm;
-      const hCm = rotated ? card.wCm : card.hCm;
+      const wPx = rotated ? card.h : card.w;
+      const hPx = rotated ? card.w : card.h;
       const name = rotated ? card.nameRotated : card.nameDefault;
-      const { dw, dh } = calcPreview(w, h);
+      const { dw, dh } = calcPreview(wPx, hPx);
 
       el.querySelector('.card-name').textContent = name;
-      el.querySelector('.card-dimensions').textContent = `${wCm} × ${hCm} פיקסל`;
+      el.querySelector('.card-dimensions').textContent = `${wPx} × ${hPx} פיקסל`;
 
       const shape = el.querySelector('.preview-shape');
       shape.style.width = dw + 'px';
@@ -477,7 +469,7 @@
       el.dataset.id = card.id;
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'button');
-      el.setAttribute('aria-label', `${card.nameDefault} — ${card.wCm} × ${card.hCm} פיקסל`);
+      el.setAttribute('aria-label', `${card.nameDefault} — ${card.w} × ${card.h} פיקסל`);
 
       // כפתור rotate (רק אם canRotate)
       if (card.canRotate) {
@@ -518,7 +510,7 @@
       info.className = 'card-info';
       info.innerHTML = `
         <span class="card-name">${card.nameDefault}</span>
-        <span class="card-dimensions">${card.wCm} × ${card.hCm} פיקסל</span>
+        <span class="card-dimensions">${card.w} × ${card.h} פיקסל</span>
       `;
       el.appendChild(info);
 
@@ -588,11 +580,6 @@
       }
     }
 
-    function clearCustomInputs() {
-      document.getElementById('customWidth').value = '';
-      document.getElementById('customHeight').value = '';
-    }
-
     // ===== כפתור החל — מטפל בהחלה של preset או גודל מותאם =====
     function handleApply() {
       if (selectedPresetId) {
@@ -600,8 +587,8 @@
         const rotated = cardState[preset.id];
         const wPts = rotated ? preset.hPts : preset.wPts;
         const hPts = rotated ? preset.wPts : preset.hPts;
-        const wDisp = rotated ? preset.hCm : preset.wCm;
-        const hDisp = rotated ? preset.wCm : preset.hCm;
+        const wDisp = rotated ? preset.h : preset.w;
+        const hDisp = rotated ? preset.w : preset.h;
         const name = rotated ? (preset.nameRotated || preset.nameDefault) : preset.nameDefault;
         applySlideSize(wPts, hPts, `${name} — ${wDisp} × ${hDisp} פיקסל`);
         return;
