@@ -452,11 +452,13 @@
       const rotated = cardState[card.id];
       const w = rotated ? card.h : card.w;
       const h = rotated ? card.w : card.h;
+      const wCm = rotated ? card.hCm : card.wCm;
+      const hCm = rotated ? card.wCm : card.hCm;
       const name = rotated ? card.nameRotated : card.nameDefault;
       const { dw, dh } = calcPreview(w, h);
 
       el.querySelector('.card-name').textContent = name;
-      el.querySelector('.card-dimensions').textContent = `${w} × ${h} px`;
+      el.querySelector('.card-dimensions').textContent = `${wCm} × ${hCm} ס"מ`;
 
       const shape = el.querySelector('.preview-shape');
       shape.style.width = dw + 'px';
@@ -472,7 +474,7 @@
       el.dataset.id = card.id;
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'button');
-      el.setAttribute('aria-label', `${card.nameDefault} — ${card.w} × ${card.h} פיקסלים`);
+      el.setAttribute('aria-label', `${card.nameDefault} — ${card.wCm} × ${card.hCm} ס"מ`);
 
       // כפתור rotate (רק אם canRotate)
       if (card.canRotate) {
@@ -513,7 +515,7 @@
       info.className = 'card-info';
       info.innerHTML = `
         <span class="card-name">${card.nameDefault}</span>
-        <span class="card-dimensions">${card.w} × ${card.h} px</span>
+        <span class="card-dimensions">${card.wCm} × ${card.hCm} ס"מ</span>
       `;
       el.appendChild(info);
 
@@ -565,7 +567,9 @@
           pageSetup.slideWidth = widthPts;
           pageSetup.slideHeight = heightPts;
           await context.sync();
-          showSuccess(`✓ הגודל שונה ל: ${presetName}`);
+          const wCm = (widthPts / 72 * 2.54).toFixed(1);
+          const hCm = (heightPts / 72 * 2.54).toFixed(1);
+          showSuccess(`✓ ${presetName} — ${wCm} × ${hCm} ס"מ`);
         });
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
