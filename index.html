@@ -363,12 +363,12 @@
       <h2>מותאם אישית</h2>
       <div class="custom-inputs">
         <div class="input-group">
-          <label for="customWidth">רוחב (ס"מ)</label>
-          <input type="number" id="customWidth" placeholder="33.9" min="1" max="142" step="0.1" inputmode="decimal" />
+          <label for="customWidth">רוחב (פיקסל)</label>
+          <input type="number" id="customWidth" placeholder="1920" min="48" max="5376" step="1" inputmode="numeric" />
         </div>
         <div class="input-group">
-          <label for="customHeight">גובה (ס"מ)</label>
-          <input type="number" id="customHeight" placeholder="19.1" min="1" max="142" step="0.1" inputmode="decimal" />
+          <label for="customHeight">גובה (פיקסל)</label>
+          <input type="number" id="customHeight" placeholder="1080" min="48" max="5376" step="1" inputmode="numeric" />
         </div>
       </div>
       <button class="apply-btn" id="applyCustomBtn">החל</button>
@@ -419,7 +419,7 @@
         nameRotated: 'A4 לרוחב',
         w: 2480, h: 3508,
         wCm: 21, hCm: 29.7,
-        wPts: 595.28, hPts: 841.89,
+        wPts: 210 / 25.4 * 72, hPts: 297 / 25.4 * 72,
         canRotate: true
       },
       {
@@ -428,15 +428,13 @@
         nameRotated: 'A3 לרוחב',
         w: 3508, h: 4961,
         wCm: 29.7, hCm: 42,
-        wPts: 841.89, hPts: 1190.55,
+        wPts: 297 / 25.4 * 72, hPts: 420 / 25.4 * 72,
         canRotate: true
       }
     ];
 
-    function cmToPts(cm) { return cm / 2.54 * 72; }
-
-    const PT_MIN = 36;    // ~1.27cm
-    const PT_MAX = 4032;  // ~142.2cm
+    const PT_MIN = 36;    // 48px min (at 96 DPI)
+    const PT_MAX = 4032;  // 5376px max (at 96 DPI)
     const PREVIEW_MAX = 60;
 
     const cardState = {};
@@ -463,7 +461,7 @@
       const { dw, dh } = calcPreview(w, h);
 
       el.querySelector('.card-name').textContent = name;
-      el.querySelector('.card-dimensions').textContent = `${wCm} × ${hCm} ס"מ`;
+      el.querySelector('.card-dimensions').textContent = `${wCm} × ${hCm} פיקסל`;
 
       const shape = el.querySelector('.preview-shape');
       shape.style.width = dw + 'px';
@@ -479,7 +477,7 @@
       el.dataset.id = card.id;
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'button');
-      el.setAttribute('aria-label', `${card.nameDefault} — ${card.wCm} × ${card.hCm} ס"מ`);
+      el.setAttribute('aria-label', `${card.nameDefault} — ${card.wCm} × ${card.hCm} פיקסל`);
 
       // כפתור rotate (רק אם canRotate)
       if (card.canRotate) {
@@ -520,7 +518,7 @@
       info.className = 'card-info';
       info.innerHTML = `
         <span class="card-name">${card.nameDefault}</span>
-        <span class="card-dimensions">${card.wCm} × ${card.hCm} ס"מ</span>
+        <span class="card-dimensions">${card.wCm} × ${card.hCm} פיקסל</span>
       `;
       el.appendChild(info);
 
@@ -572,9 +570,7 @@
           pageSetup.slideWidth = widthPts;
           pageSetup.slideHeight = heightPts;
           await context.sync();
-          const wCm = (widthPts / 72 * 2.54).toFixed(2);
-          const hCm = (heightPts / 72 * 2.54).toFixed(2);
-          showSuccess(`✓ ${presetName} — ${wCm} × ${hCm} ס"מ`);
+          showSuccess(`✓ ${presetName}`);
         });
       } catch (err) {
         const code = err && err.code ? err.code : '';
@@ -604,32 +600,34 @@
         const rotated = cardState[preset.id];
         const wPts = rotated ? preset.hPts : preset.wPts;
         const hPts = rotated ? preset.wPts : preset.hPts;
+        const wDisp = rotated ? preset.hCm : preset.wCm;
+        const hDisp = rotated ? preset.wCm : preset.hCm;
         const name = rotated ? (preset.nameRotated || preset.nameDefault) : preset.nameDefault;
-        applySlideSize(wPts, hPts, name);
+        applySlideSize(wPts, hPts, `${name} — ${wDisp} × ${hDisp} פיקסל`);
         return;
       }
 
-      const wCm = parseFloat(document.getElementById('customWidth').value);
-      const hCm = parseFloat(document.getElementById('customHeight').value);
+      const wPx = parseFloat(document.getElementById('customWidth').value);
+      const hPx = parseFloat(document.getElementById('customHeight').value);
 
-      if (!wCm || !hCm || isNaN(wCm) || isNaN(hCm) || wCm <= 0 || hCm <= 0) {
-        showError('בחר גודל מהרשימה או הזן ס"מ בשדות למטה');
+      if (!wPx || !hPx || isNaN(wPx) || isNaN(hPx) || wPx <= 0 || hPx <= 0) {
+        showError('בחר גודל מהרשימה או הזן פיקסלים בשדות למטה');
         return;
       }
 
-      const wPts = wCm / 2.54 * 72;
-      const hPts = hCm / 2.54 * 72;
+      const wPts = wPx * 0.75;
+      const hPts = hPx * 0.75;
 
       if (wPts < PT_MIN || hPts < PT_MIN) {
-        showError(`גודל מינימלי: 1.3 ס"מ`);
+        showError(`גודל מינימלי: 48 פיקסל`);
         return;
       }
       if (wPts > PT_MAX || hPts > PT_MAX) {
-        showError(`גודל מקסימלי: 142 ס"מ`);
+        showError(`גודל מקסימלי: 5,376 פיקסל`);
         return;
       }
 
-      applySlideSize(wPts, hPts, `${wCm}×${hCm} ס"מ`);
+      applySlideSize(wPts, hPts, `${wPx} × ${hPx} פיקסל`);
     }
 
     // ===== אתחול — מחכים ל-Office.js =====
