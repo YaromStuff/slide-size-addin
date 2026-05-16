@@ -79,7 +79,8 @@ The standard 16:9 widescreen width is **exactly 960 pts** (13.333… inches). Th
 
 - Standard widescreen: `wPts: 960, hPts: 540`
 - Standard portrait/story: `wPts: 540, hPts: 960`
-- A4: `wPts: 595.28, hPts: 841.89` (from 210mm/297mm — no clean integer exists)
+- A4: `wPts: 540, hPts: 780` (PowerPoint's internal A4 = 19.05 × 27.52 cm = 7.5 × 10.833 in — NOT ISO 210×297mm)
+- A3: `wPts: 756, hPts: 1008` (PowerPoint's internal A3 = 26.67 × 35.56 cm = 10.5 × 14 in — NOT ISO 297×420mm)
 
 This is why Story worked (its `wPts` happened to be `540` exactly) while Wide did not (`wPts` computed to `960.009`).
 
@@ -137,3 +138,37 @@ PowerPoint enforces these limits (same as the UI dialog):
 | Maximum | 4032 pts | 56 in | 142.24 cm |
 
 The code mirrors these in `PT_MIN` / `PT_MAX`. Values outside this range will throw `InvalidArgument`.
+
+### 8. PowerPointApi 1.10 is NOT available on perpetual/LTSC Office
+
+`pageSetup.slideWidth/Height` requires PowerPointApi 1.10, which is only available in:
+- **Microsoft 365 subscription** — Windows Version 2601+ (Build 19610+), Mac Version 16.105+
+- **Office on the web**
+
+It is **NOT** available on Office 2019, 2021, or 2024 volume-licensed (LTSC) builds. The manifest `<Requirements>` gate hides the add-in entirely on unsupported versions. Users who report the add-in not appearing likely have a perpetual license.
+
+### 9. PowerPoint "paper" sizes differ from ISO paper dimensions
+
+PowerPoint's built-in paper size presets use non-standard dimensions (smaller than ISO). Always read the actual dimensions from PowerPoint's slide size dialog rather than computing from mm:
+
+| Preset | PowerPoint dimensions | ISO dimensions |
+|--------|-----------------------|---------------|
+| A4 | 19.05 × 27.52 cm (540 × 780 pts) | 21 × 29.7 cm (595 × 842 pts) |
+| A3 | 26.67 × 35.56 cm (756 × 1008 pts) | 29.7 × 42 cm (842 × 1191 pts) |
+
+Using ISO dimensions will cause `InvalidArgument` because the API expects the values PowerPoint itself uses.
+
+### 10. Error debugging: `debugInfo` and `context.trace()`
+
+For intermittent or hard-to-reproduce errors, `OfficeExtension.Error` has:
+- `error.debugInfo` — structured object; serialize with `JSON.stringify(error.debugInfo)` for logging
+- `error.traceMessages` — strings added via `context.trace('label')` before the failing `sync()`; identifies which queued command caused the error
+
+```js
+context.trace('before slideWidth write');
+pageSetup.slideWidth = wPts;
+pageSetup.slideHeight = hPts;
+await context.sync(); // error.traceMessages will include 'before slideWidth write'
+```
+
+Check `error instanceof OfficeExtension.Error` to distinguish API errors from JS exceptions.
