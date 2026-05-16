@@ -15,7 +15,7 @@
   <Description DefaultValue="שינוי גודל שקף בלחיצה אחת"/>
 
   <IconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-80.png"/>
+  <HighResolutionIconUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://yaromstuff.github.io/slide-size-addin/"/>
 
   <AppDomains>
