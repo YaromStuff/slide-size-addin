@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>גודל שקף</title>
+  <title>Slide Master</title>
 
   <!-- טעינת גופן Heebo מ-Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -350,7 +350,7 @@
 <body>
   <div class="addin-container">
     <header>
-      <h1>גודל שקף</h1>
+      <h1>Slide Master</h1>
     </header>
 
     <!-- כרטיסי גדלים מוכנים -->
@@ -578,6 +578,11 @@
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
       }
+    }
+
+    function clearCustomInputs() {
+      document.getElementById('customWidth').value = '';
+      document.getElementById('customHeight').value = '';
     }
 
     // ===== כפתור החל — מטפל בהחלה של preset או גודל מותאם =====
