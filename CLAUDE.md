@@ -82,9 +82,9 @@ Conversions: `pts = cm / 2.54 * 72` · `pts = px * 0.75` (at 96 DPI) · `pts = m
 
 | Preset | wPts | hPts | Notes |
 |--------|------|------|-------|
-| Wide (16:9) | 960 | 540 | Exactly 13.333 in wide |
-| Story/Portrait | 540 | 960 | Rotated wide |
-| Square | 540 | 540 | |
+| Wide (16:9) | 1440 | 810 | Full-HD pixel canvas: 1920×1080 px (20 × 11.25 in). Not PowerPoint's default 13.33 in / 960×540 — see Gotcha #12. |
+| Story/Portrait | 810 | 1440 | Rotated wide: 1080×1920 px |
+| Square | 810 | 810 | 1080×1080 px |
 | A4 | 540 | 780 | PowerPoint's internal A4, NOT ISO (see Gotcha #9) |
 | A3 | 756 | 1008 | PowerPoint's internal A3, NOT ISO |
 
@@ -188,7 +188,7 @@ For non-proportional presets it also distorted the preview: A4's ISO design rati
 - cm label: `ptsToCm(pts) = pts * 2.54 / 72`
 - preview aspect ratio: `calcPreview(wPts, hPts)`
 
-So widescreen now shows `1280 × 720 px` / `33.9 × 19.1 cm` consistently.
+So every label stays internally consistent: e.g. wide (`1440×810 pt`) shows `1920 × 1080 px` / `50.8 × 28.6 cm`, and `1920 px × 0.75 = 1440 pt`, `1440 pt × 2.54/72 = 50.8 cm` all agree.
 
 ### 13. Refresh the live "current size" indicator after every successful apply
 
