@@ -514,7 +514,7 @@
 
       el.querySelector('.card-name').textContent = name;
       const dimText = unit === 'cm'
-        ? `${ptsToCm(wPts).toFixed(1)} × ${ptsToCm(hPts).toFixed(1)} ס״מ`
+        ? `${ptsToCm(wPts).toFixed(2)} × ${ptsToCm(hPts).toFixed(2)} ס״מ`
         : `${ptsToPx(wPts)} × ${ptsToPx(hPts)} פיקסל`;
       el.querySelector('.card-dimensions').textContent = dimText;
       el.setAttribute('aria-label', `${name} — ${dimText}`);
@@ -540,16 +540,16 @@
 
       wLabel.textContent = isCm ? 'רוחב (ס״מ)' : 'רוחב (פיקסל)';
       hLabel.textContent = isCm ? 'גובה (ס״מ)' : 'גובה (פיקסל)';
-      wInput.placeholder = isCm ? '33.9' : '1920';
-      hInput.placeholder = isCm ? '19.1' : '1080';
-      wInput.step = isCm ? '0.1' : '1';
+      wInput.placeholder = isCm ? '50.8' : '1920';
+      hInput.placeholder = isCm ? '28.58' : '1080';
+      wInput.step = isCm ? '0.01' : '1';
 
       if (currentSlidePts.w && currentSlidePts.h) {
         wInput.value = isCm
-          ? ptsToCm(currentSlidePts.w).toFixed(1)
+          ? ptsToCm(currentSlidePts.w).toFixed(2)
           : String(ptsToPx(currentSlidePts.w));
         hInput.value = isCm
-          ? ptsToCm(currentSlidePts.h).toFixed(1)
+          ? ptsToCm(currentSlidePts.h).toFixed(2)
           : String(ptsToPx(currentSlidePts.h));
       }
     }
@@ -724,7 +724,7 @@
       }
 
       const label = unit === 'cm'
-        ? `${raw1.toFixed(1)} × ${raw2.toFixed(1)} ס״מ`
+        ? `${raw1.toFixed(2)} × ${raw2.toFixed(2)} ס״מ`
         : `${Math.round(raw1)} × ${Math.round(raw2)} פיקסל`;
       applySlideSize(wPts, hPts, label);
     }

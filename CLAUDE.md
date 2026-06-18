@@ -188,7 +188,11 @@ For non-proportional presets it also distorted the preview: A4's ISO design rati
 - cm label: `ptsToCm(pts) = pts * 2.54 / 72`
 - preview aspect ratio: `calcPreview(wPts, hPts)`
 
-So every label stays internally consistent: e.g. wide (`1440×810 pt`) shows `1920 × 1080 px` / `50.8 × 28.6 cm`, and `1920 px × 0.75 = 1440 pt`, `1440 pt × 2.54/72 = 50.8 cm` all agree.
+So every label stays internally consistent: e.g. wide (`1440×810 pt`) shows `1920 × 1080 px` / `50.80 × 28.58 cm`, and `1920 px × 0.75 = 1440 pt`, `1440 pt × 2.54/72 = 50.8 cm` all agree.
+
+cm labels are displayed to **2 decimals** (`.toFixed(2)`) — this matches PowerPoint's own Slide Size dialog exactly (e.g. A4 = `19.05 × 27.52 cm`). One decimal (`19.1 × 27.5`) drifts up to 0.05 cm from PowerPoint's value and breaks trust. px labels need no decimals: every preset's points divide cleanly by 0.75, so px is exact. All preset point values are also whole EMUs (12700 EMU/pt), so PowerPoint stores them with zero quantization — the slide is exactly the size shown.
+
+Caveat: a **custom px** entry snaps to the nearest whole point (`Math.round(px * 0.75)`), so it can shift by up to ~1px on round-trip (point granularity ≈ 1.33 px). Preset px values are all exact because they were chosen to map to integer points.
 
 ### 13. Refresh the live "current size" indicator after every successful apply
 
