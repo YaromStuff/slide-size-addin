@@ -12,14 +12,15 @@ Everything lives in a single `index.html`. No bundler, no server — open in a b
 
 **Data flow:**
 1. `PRESETS` array defines all slide sizes — each preset has:
-   - `wPts`/`hPts` — API values in points (source of truth for `pageSetup.slideWidth/Height`)
-   - `w`/`h` — pixel dimensions shown in the card UI and used for preview aspect ratio
+   - `wPts`/`hPts` — API values in points (sole source of truth). **No separate `w`/`h` fields.** px labels, cm labels, and preview aspect ratio are all derived at render time from `wPts`/`hPts`.
    - `canRotate` / `nameRotated` — whether the card shows a rotate button
-2. `cardState` object tracks `isRotated` per preset ID
-3. Clicking a card selects it; clicking "החל" → `handleApply()` → `applySlideSize(widthPts, heightPts, name)` → `PowerPoint.run()` context
-4. `Office.onReady()` builds all cards dynamically via `buildCard()`
+2. `unit` (`'px'` | `'cm'`) — global toggle, defaults to `'px'`. `setUnit()` re-renders all cards and the custom section.
+3. `currentSlidePts = { w, h }` — populated on load by reading `pageSetup.slideWidth/Height`; refreshed after every successful apply. Drives the custom-input pre-fill.
+4. `cardState` object tracks `isRotated` per preset ID.
+5. Clicking a card selects it; clicking "החל" → `handleApply()` → `applySlideSize(widthPts, heightPts, name)` → `PowerPoint.run()` context with a 3-second `Promise.race` timeout.
+6. `Office.onReady()` (async) builds all cards, wires the unit toggle, reads the current slide size, then wires remaining event listeners.
 
-**Units:** `pageSetup.slideWidth/Height` use **points** (1 pt = 1/72 inch). Requires PowerPointApi 1.10.
+**Units:** `pageSetup.slideWidth/Height` use **points** (1 pt = 1/72 inch). **Points ≠ pixels** — see Gotcha #1. Requires PowerPointApi 1.10.
 
 ## Key Constraints
 
@@ -68,11 +69,29 @@ Add an object to the `PRESETS` array in `index.html`:
 
 Hard-won findings from debugging and API research. **Read before touching slide-size code. Update this section whenever new findings are made.**
 
-### 1. `pageSetup.slideWidth/Height` uses POINTS, not EMU
+### 1. `pageSetup.slideWidth/Height` uses POINTS, not EMU — and points ≠ pixels
 
 `context.presentation.pageSetup.slideWidth` and `slideHeight` take **points** (1 pt = 1/72 inch).
 
 EMU is used elsewhere in Office.js (shapes, etc.) but NOT here. Passing EMU values would set a microscopic slide and throw `InvalidArgument`.
+
+**Points and pixels are different units.** A point is a physical unit (1/72 inch). A pixel has no fixed physical size — it depends on DPI. At 96 DPI (web/Windows standard):
+
+```
+96 px = 1 inch = 72 pt
+→ 1 pt = 1.3333 px
+→ 1 px = 0.75 pt
+```
+
+So the *same slide* described in different units:
+
+| Unit | Wide preset |
+|------|------------|
+| Points (stored by PowerPoint) | 1440 × 810 |
+| Pixels at 96 DPI (add-in label) | 1920 × 1080 |
+| cm (physical, DPI-independent) | 50.80 × 28.58 |
+
+**cm and inches are the most trustworthy labels** — they are DPI-independent and match what PowerPoint's Slide Size dialog shows. The px label assumes 96 DPI export; if you export a PNG from PowerPoint at a different resolution, the pixel count will differ from what the add-in displays.
 
 Conversions: `pts = cm / 2.54 * 72` · `pts = px * 0.75` (at 96 DPI) · `pts = mm / 25.4 * 72`
 
@@ -96,11 +115,11 @@ Never derive `wPts`/`hPts` from cm/px at runtime in `handleApply`.
 
 ```js
 // WRONG — silent no-op
-context.presentation.slideWidth = 960;
+context.presentation.slideWidth = 1440;
 
 // CORRECT
-context.presentation.pageSetup.slideWidth = 960;
-context.presentation.pageSetup.slideHeight = 540;
+context.presentation.pageSetup.slideWidth = 1440;
+context.presentation.pageSetup.slideHeight = 810;
 await context.sync();
 ```
 
@@ -132,7 +151,9 @@ Without `<Requirements>`, the add-in loads on any version. On versions without 1
 | Minimum | 72 pts | 96 px | 1 in |
 | Maximum | 4032 pts | 5376 px | 56 in |
 
-Code constants: `PT_MIN = 36` (custom input uses px * 0.75, so 48px min → 36 pts), `PT_MAX = 4032`. Values outside this range throw `InvalidArgument`.
+Code constants: `PT_MIN = 36`, `PT_MAX = 4032`. Values outside this range throw `InvalidArgument`.
+
+**Watch out:** the API minimum is **72 pts** (96 px / 1 in), but `PT_MIN` is set to 36 (= 48px × 0.75). Any custom input between 48–95 px will pass the in-code guard but get rejected by the API with `InvalidArgument`. If you touch the custom input validation, raise `PT_MIN` to 72 to match the API floor.
 
 ### 7. PowerPointApi 1.10 is NOT available on perpetual/LTSC Office
 
