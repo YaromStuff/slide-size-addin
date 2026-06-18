@@ -439,14 +439,13 @@
     'use strict';
 
     // ===== נתוני גדלי השקפים =====
-    // wPts/hPts = ערכי API בנקודות — pageSetup.slideWidth/Height (מקור האמת)
-    // w/h = מידות בפיקסלים — לתצוגה בכרטיס ולפרופורציות preview
+    // wPts/hPts = ערכי API בנקודות — pageSetup.slideWidth/Height (מקור האמת היחיד)
+    // תצוגת פיקסל/ס״מ והפרופורציות מחושבות מ-wPts/hPts
     const PRESETS = [
       {
         id: 'wide',
         nameDefault: 'מצגת רחבה',
         nameRotated: 'מצגת לגובה',
-        w: 1920, h: 1080,
         wPts: 960, hPts: 540,
         canRotate: true
       },
@@ -454,7 +453,6 @@
         id: 'square',
         nameDefault: 'ריבוע',
         nameRotated: null,
-        w: 1080, h: 1080,
         wPts: 540, hPts: 540,
         canRotate: false
       },
@@ -462,7 +460,6 @@
         id: 'story',
         nameDefault: 'סטורי / ורטיקל',
         nameRotated: null,
-        w: 1080, h: 1920,
         wPts: 540, hPts: 960,
         canRotate: false
       },
@@ -470,7 +467,6 @@
         id: 'a4',
         nameDefault: 'A4 לאורך',
         nameRotated: 'A4 לרוחב',
-        w: 2480, h: 3508,
         wPts: 540, hPts: 780,
         canRotate: true
       },
@@ -478,7 +474,6 @@
         id: 'a3',
         nameDefault: 'A3 לאורך',
         nameRotated: 'A3 לרוחב',
-        w: 3508, h: 4961,
         wPts: 756, hPts: 1008,
         canRotate: true
       }
@@ -492,6 +487,7 @@
     let currentSlidePts = { w: 0, h: 0 };
 
     function ptsToCm(pts) { return pts * 2.54 / 72; }
+    function ptsToPx(pts) { return Math.round(pts / 0.75); }
     function cmToPts(cm) { return Math.round(cm / 2.54 * 72); }
     function pxToPts(px) { return Math.round(px * 0.75); }
 
@@ -511,17 +507,15 @@
     // ===== עדכון ויזואל של כרטיס (שם, מידות, preview) =====
     function updateCardVisual(card, el) {
       const rotated = cardState[card.id];
-      const wPx = rotated ? card.h : card.w;
-      const hPx = rotated ? card.w : card.h;
       const wPts = rotated ? card.hPts : card.wPts;
       const hPts = rotated ? card.wPts : card.hPts;
       const name = rotated ? card.nameRotated : card.nameDefault;
-      const { dw, dh } = calcPreview(wPx, hPx);
+      const { dw, dh } = calcPreview(wPts, hPts);
 
       el.querySelector('.card-name').textContent = name;
       const dimText = unit === 'cm'
         ? `${ptsToCm(wPts).toFixed(1)} × ${ptsToCm(hPts).toFixed(1)} ס״מ`
-        : `${wPx} × ${hPx} פיקסל`;
+        : `${ptsToPx(wPts)} × ${ptsToPx(hPts)} פיקסל`;
       el.querySelector('.card-dimensions').textContent = dimText;
       el.setAttribute('aria-label', `${name} — ${dimText}`);
 
@@ -553,10 +547,10 @@
       if (currentSlidePts.w && currentSlidePts.h) {
         wInput.value = isCm
           ? ptsToCm(currentSlidePts.w).toFixed(1)
-          : String(Math.round(currentSlidePts.w / 0.75));
+          : String(ptsToPx(currentSlidePts.w));
         hInput.value = isCm
           ? ptsToCm(currentSlidePts.h).toFixed(1)
-          : String(Math.round(currentSlidePts.h / 0.75));
+          : String(ptsToPx(currentSlidePts.h));
       }
     }
 
@@ -674,6 +668,8 @@
 
       try {
         await Promise.race([applyPromise, timeoutPromise]);
+        currentSlidePts = { w: widthPts, h: heightPts };
+        updateCustomSection();
         showSuccess(`✓ ${presetName}`);
       } catch (err) {
         if (err.message === 'TIMEOUT') {

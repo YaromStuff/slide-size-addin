@@ -56,11 +56,10 @@ Push `index.html` and `assets/` to the `main` branch of the GitHub Pages repo. T
 Add an object to the `PRESETS` array in `index.html`:
 
 ```js
-{ id: 'unique-id', nameDefault: 'שם', nameRotated: 'שם מסובב', w: 1920, h: 1080, wPts: 960, hPts: 540, canRotate: true }
+{ id: 'unique-id', nameDefault: 'שם', nameRotated: 'שם מסובב', wPts: 960, hPts: 540, canRotate: true }
 ```
 
-- `wPts`/`hPts` — exact API values in points. Use hardcoded integers, never compute from cm at runtime (see Gotcha #2).
-- `w`/`h` — pixel display values shown on the card (also drive the preview shape aspect ratio).
+- `wPts`/`hPts` — exact API values in points. Use hardcoded integers, never compute from cm at runtime (see Gotcha #2). **Single source of truth** — the card's px label, cm label, and preview aspect ratio are all derived from these (see Gotcha #12). Do NOT add separate `w`/`h` display-pixel fields.
 - Set `canRotate: false` and `nameRotated: null` for square or fixed-orientation formats.
 
 ---
@@ -177,3 +176,20 @@ Assign `const pageSetup = context.presentation.pageSetup` once, set both width a
 ### 11. `resid` attribute values in manifest.xml must be ≤ 32 characters
 
 Longer `resid` strings are silently truncated or cause manifest load errors. Keep all resource IDs short.
+
+### 12. All UI dimension labels must derive from `wPts`/`hPts` — never store separate display-px
+
+Storing nominal "design pixels" (e.g. `w: 1920, h: 1080` for widescreen) alongside `wPts: 960, hPts: 540` makes the px and cm labels disagree: the card showed `1920 × 1080 px` but cm mode showed `33.9 × 19.1 cm`, and `1920 px ≠ 33.9 cm` (1920 px = 50.8 cm). It also broke the live "current size" indicator (which reads real pts → 1280 × 720 px) and made same-ratio applies look like no-ops, since the slide was already 960×540 but the card advertised a different-looking 1920×1080.
+
+For non-proportional presets it also distorted the preview: A4's ISO design ratio (2480×3508 = 0.707) differs from PowerPoint's actual A4 (540×780 = 0.692).
+
+**Rule:** `wPts`/`hPts` is the single source of truth. Derive on the fly:
+- px label: `ptsToPx(pts) = Math.round(pts / 0.75)`
+- cm label: `ptsToCm(pts) = pts * 2.54 / 72`
+- preview aspect ratio: `calcPreview(wPts, hPts)`
+
+So widescreen now shows `1280 × 720 px` / `33.9 × 19.1 cm` consistently.
+
+### 13. Refresh the live "current size" indicator after every successful apply
+
+`applySlideSize` must update `currentSlidePts = { w: widthPts, h: heightPts }` and call `updateCustomSection()` on success. Otherwise the pre-filled custom inputs keep showing the slide's size from page load, not the size just applied.
