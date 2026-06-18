@@ -577,7 +577,6 @@
       el.dataset.id = card.id;
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'button');
-      el.setAttribute('aria-label', `${card.nameDefault} — ${card.w} × ${card.h} פיקסל`);
 
       // כפתור rotate (רק אם canRotate)
       if (card.canRotate) {
@@ -696,11 +695,6 @@
       }
     }
 
-    function clearCustomInputs() {
-      document.getElementById('customWidth').value = '';
-      document.getElementById('customHeight').value = '';
-    }
-
     // ===== כפתור החל — מטפל בהחלה של preset או גודל מותאם =====
     function handleApply() {
       if (selectedPresetId) {
@@ -708,10 +702,8 @@
         const rotated = cardState[preset.id];
         const wPts = rotated ? preset.hPts : preset.wPts;
         const hPts = rotated ? preset.wPts : preset.hPts;
-        const wDisp = rotated ? preset.h : preset.w;
-        const hDisp = rotated ? preset.w : preset.h;
         const name = rotated ? (preset.nameRotated || preset.nameDefault) : preset.nameDefault;
-        applySlideSize(wPts, hPts, `${name} — ${wDisp} × ${hDisp} פיקסל`);
+        applySlideSize(wPts, hPts, name);
         return;
       }
 
@@ -742,7 +734,7 @@
     }
 
     // ===== אתחול — מחכים ל-Office.js =====
-    Office.onReady(async (info) => {
+    Office.onReady(async () => {
       // בניית כרטיסי הגדלים
       const grid = document.getElementById('presetsGrid');
       PRESETS.forEach(card => {
